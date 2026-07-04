@@ -1,6 +1,6 @@
 """市场分析 API 路由"""
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.analysis import FactorResponse, InstitutionResponse
@@ -14,12 +14,15 @@ async def get_market_factors(
     limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    from app.models.analysis import MarketFactor
+    from app.models.analysis import FactorType, MarketFactor
     
     query = db.query(MarketFactor)
     
     if factor_type:
-        query = query.filter(MarketFactor.type == factor_type)
+        try:
+            query = query.filter(MarketFactor.type == FactorType(factor_type))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="factor_type must be bullish or bearish")
     
     factors = query.order_by(MarketFactor.created_at.desc()).limit(limit).all()
     
@@ -41,10 +44,10 @@ async def get_market_factors(
 
 @router.get("/factors/bullish", response_model=List[FactorResponse])
 async def get_bullish_factors(limit: int = 10, db: Session = Depends(get_db)):
-    from app.models.analysis import MarketFactor
+    from app.models.analysis import FactorType, MarketFactor
     
     factors = db.query(MarketFactor).filter(
-        MarketFactor.type == "bullish"
+        MarketFactor.type == FactorType.BULLISH
     ).order_by(MarketFactor.created_at.desc()).limit(limit).all()
     
     return [
@@ -65,10 +68,10 @@ async def get_bullish_factors(limit: int = 10, db: Session = Depends(get_db)):
 
 @router.get("/factors/bearish", response_model=List[FactorResponse])
 async def get_bearish_factors(limit: int = 10, db: Session = Depends(get_db)):
-    from app.models.analysis import MarketFactor
+    from app.models.analysis import FactorType, MarketFactor
     
     factors = db.query(MarketFactor).filter(
-        MarketFactor.type == "bearish"
+        MarketFactor.type == FactorType.BEARISH
     ).order_by(MarketFactor.created_at.desc()).limit(limit).all()
     
     return [

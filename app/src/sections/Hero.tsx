@@ -86,10 +86,9 @@ export default function Hero() {
           </div>
 
           {/* Main Title - 突出AI Agent */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
-            <span className="text-white">AI Agent</span>
-            <br />
-            <span className="gold-text">黄金市场智能分析</span>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.12]">
+            <span className="block text-white pb-1">AI Agent</span>
+            <span className="block gold-text mt-2 sm:mt-3">黄金市场智能分析</span>
           </h1>
 
           {/* Subtitle - 强调AI能力 */}

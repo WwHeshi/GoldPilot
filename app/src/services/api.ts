@@ -433,6 +433,8 @@ export interface AIConfig {
   enable_web_search: boolean;
   has_api_key: boolean;
   masked_api_key: string;
+  has_web_search_api_key: boolean;
+  masked_web_search_api_key: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -442,6 +444,17 @@ export interface AIConfigUpdate {
   model_name: string;
   api_key: string;
   enable_web_search: boolean;
+  web_search_api_key: string;
+}
+
+export interface AIConfigTestResponse {
+  success: boolean;
+  status: string;
+  message: string;
+  latency_ms?: number | null;
+  base_url: string;
+  model_name: string;
+  response_preview?: string | null;
 }
 
 export const aiConfigApi = {
@@ -452,6 +465,46 @@ export const aiConfigApi = {
 
   updateConfig: async (payload: AIConfigUpdate): Promise<AIConfig> => {
     const response = await api.put<AIConfig>('/api/gold/ai-config', payload);
+    return response.data;
+  },
+
+  testConnection: async (payload: AIConfigUpdate): Promise<AIConfigTestResponse> => {
+    const response = await api.post<AIConfigTestResponse>('/api/gold/ai-config/test', payload, {
+      timeout: 20000,
+    });
+    return response.data;
+  },
+};
+
+export type DataSourceCheckStatus = 'ok' | 'warning' | 'error';
+
+export interface DataSourceCheck {
+  name: string;
+  category: string;
+  source: string;
+  status: DataSourceCheckStatus;
+  latency_ms: number;
+  message: string;
+  sample: Record<string, unknown>;
+}
+
+export interface DataSourceStatusResponse {
+  overall_status: 'ok' | 'warning' | 'degraded';
+  checked_at: string;
+  summary: {
+    total: number;
+    ok: number;
+    warning: number;
+    error: number;
+  };
+  checks: DataSourceCheck[];
+}
+
+export const dataSourceApi = {
+  checkStatus: async (): Promise<DataSourceStatusResponse> => {
+    const response = await api.get<DataSourceStatusResponse>('/api/gold/data-sources/status', {
+      timeout: 45000,
+    });
     return response.data;
   },
 };

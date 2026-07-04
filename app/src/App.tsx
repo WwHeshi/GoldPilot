@@ -1,4 +1,5 @@
 import AISettingsDialog from './components/AISettingsDialog';
+import DataSourceStatusDialog from './components/DataSourceStatusDialog';
 import { Toaster } from './components/ui/sonner';
 import { GoldDataProvider } from './contexts/GoldDataContext';
 import Footer from './sections/Footer';
@@ -39,6 +40,7 @@ function App() {
                   总结
                 </a>
               </div>
+              <DataSourceStatusDialog />
               <AISettingsDialog />
             </div>
           </div>

@@ -10,7 +10,7 @@ from loguru import logger
 from app import models  # noqa: F401
 from app.config import settings
 from app.database import engine, Base
-from app.routers import gold_prices, analysis, news, predictions, ai_config
+from app.routers import gold_prices, analysis, news, predictions, ai_config, diagnostics
 from app.scheduler import init_scheduler, shutdown_scheduler
 
 
@@ -145,6 +145,7 @@ app.include_router(analysis.router, prefix="/api/gold", tags=["市场分析"])
 app.include_router(news.router, prefix="/api/gold", tags=["新闻资讯"])
 app.include_router(predictions.router, prefix="/api/gold", tags=["价格预测"])
 app.include_router(ai_config.router, prefix="/api/gold", tags=["AI Config"])
+app.include_router(diagnostics.router, prefix="/api/gold", tags=["数据源诊断"])
 
 
 @app.get("/")
@@ -245,7 +246,8 @@ async def health_check():
             "provider_name": resolved.provider_name,
             "model_name": resolved.model_name,
             "base_url": resolved.base_url,
-            "web_search_enabled": resolved.enable_web_search
+            "web_search_enabled": resolved.enable_web_search,
+            "web_search_configured": bool(resolved.web_search_api_key)
         }
     except Exception as e:
         health_status["services"]["ai_config"] = {

@@ -11,6 +11,7 @@ from app.models.analysis import InstitutionView
 from app.services.cache_manager import CacheManager
 from app.services.zhipu_service import get_zhipu_service
 from app.services.ai_config_service import build_chat_openai
+from app.services.web_search_service import WebSearchService, format_search_results
 from app.utils.timezone import china_now, china_now_iso, china_now_text, format_china_iso
 import json
 
@@ -183,14 +184,14 @@ class InstitutionPredictionAnalyzer:
         """执行分析 - 使用智谱AI实时搜索"""
         # 使用智谱AI实时搜索获取最新机构预测
         try:
-            print("[InstitutionPrediction] 使用智谱AI实时搜索机构预测...")
-            search_result = self.zhipu_service.search_institution_predictions()
+            print("[InstitutionPrediction] 使用Tavily搜索机构预测...")
+            search_result = self._search_institution_predictions(db)
             
             # 检查搜索结果是否有效
             if search_result.get("institutions") and len(search_result["institutions"]) > 0:
                 print(f"[InstitutionPrediction] 成功获取 {len(search_result['institutions'])} 家机构预测")
                 search_result["last_updated"] = china_now_iso()
-                search_result["data_source"] = "智谱AI实时搜索"
+                search_result["data_source"] = "Tavily Web Search + OpenAI兼容模型"
                 return search_result
             else:
                 print("[InstitutionPrediction] 搜索结果为空，使用备用方案")
@@ -200,6 +201,49 @@ class InstitutionPredictionAnalyzer:
         
         # 备用方案：使用传统方式分析
         return self._analyze_with_traditional_llm(db)
+
+    def _search_institution_predictions(self, db: Session) -> Dict[str, Any]:
+        current_time = china_now_text()
+        search = WebSearchService(db).search(
+            "latest gold price forecast Goldman Sachs UBS Morgan Stanley Citi target price 2026 gold",
+            max_results=8,
+        )
+        if not search.get("results"):
+            return {
+                "institutions": [],
+                "analysis_summary": search.get("message", "Tavily搜索结果为空"),
+            }
+
+        search_context = format_search_results(search, max_chars=5000)
+        prompt = self.prompt_template.format(
+            news_content=f"当前中国时间：{current_time}\n\nTavily 搜索结果：\n{search_context}\n\n请只基于这些搜索结果和当前行情常识整理，不要把 2024 年或更早内容当作当前预测。",
+            current_time=current_time,
+        )
+
+        try:
+            response = self.llm.invoke(prompt)
+            result = self._extract_json(response.content)
+            if result.get("institutions"):
+                result["search_provider"] = "tavily"
+                result["search_results"] = search.get("results", [])
+                return result
+        except Exception as error:
+            print(f"解析机构预测失败: {error}")
+
+        return {
+            "institutions": [],
+            "analysis_summary": "搜索或解析失败",
+        }
+
+    def _extract_json(self, content: str) -> Dict[str, Any]:
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            if start != -1 and end > start:
+                return json.loads(content[start:end])
+            raise
     
     def _analyze_with_traditional_llm(self, db: Session) -> Dict[str, Any]:
         """使用传统LLM分析（备用方案）"""

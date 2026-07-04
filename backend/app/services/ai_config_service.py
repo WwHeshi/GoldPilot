@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from openai import OpenAI
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app.models.ai_config import AIConfig
@@ -19,10 +20,15 @@ class ResolvedAIConfig:
     model_name: str
     api_key: str
     enable_web_search: bool
+    web_search_api_key: str
 
     @property
     def has_api_key(self) -> bool:
         return bool(self.api_key)
+
+    @property
+    def has_web_search_api_key(self) -> bool:
+        return bool(self.web_search_api_key)
 
 
 def mask_api_key(api_key: str) -> str:
@@ -36,6 +42,19 @@ def mask_api_key(api_key: str) -> str:
 class AIConfigService:
     def __init__(self, db: Session):
         self.db = db
+        self._ensure_columns()
+
+    def _ensure_columns(self) -> None:
+        inspector = inspect(self.db.bind)
+        if "ai_configs" not in inspector.get_table_names():
+            return
+
+        columns = {column["name"] for column in inspector.get_columns("ai_configs")}
+        if "web_search_api_key" not in columns:
+            self.db.execute(
+                text("ALTER TABLE ai_configs ADD COLUMN web_search_api_key VARCHAR(500) NOT NULL DEFAULT ''")
+            )
+            self.db.commit()
 
     def get_or_create_config(self) -> AIConfig:
         config = self.db.query(AIConfig).order_by(AIConfig.id.asc()).first()
@@ -48,6 +67,7 @@ class AIConfigService:
             model_name="",
             api_key="",
             enable_web_search=False,
+            web_search_api_key="",
         )
         self.db.add(config)
         self.db.commit()
@@ -62,6 +82,7 @@ class AIConfigService:
             model_name=config.model_name or "",
             api_key=config.api_key or "",
             enable_web_search=bool(config.enable_web_search),
+            web_search_api_key=config.web_search_api_key or "",
         )
 
     def update_config(
@@ -71,6 +92,7 @@ class AIConfigService:
         model_name: str,
         api_key: str,
         enable_web_search: bool,
+        web_search_api_key: str = "",
     ) -> AIConfig:
         config = self.get_or_create_config()
         config.provider_name = DEFAULT_PROVIDER_NAME
@@ -79,6 +101,8 @@ class AIConfigService:
         config.enable_web_search = bool(enable_web_search)
         if api_key.strip():
             config.api_key = api_key.strip()
+        if web_search_api_key.strip():
+            config.web_search_api_key = web_search_api_key.strip()
         self.db.add(config)
         self.db.commit()
         self.db.refresh(config)

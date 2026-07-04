@@ -19,48 +19,108 @@
         "name": "瑞银 (UBS)",
         "logo": "UBS",
         "rating": "bullish",
-        "target_price": 5000,
-        "timeframe": "2026年9月",
-        "reasoning": "预计上半年触及5000美元，长期看好",
+        "target_price": 6200,
+        "timeframe": "2026年3月、6月和9月",
+        "reasoning": "将目标价从5000美元大幅上调至6200美元",
         "key_points": [
           "去美元化需求支撑长期金价",
           "地缘政治不确定性持续",
-          "上半年或触及5000美元关口",
-          "美联储降息趋缓后可能小幅回落"
+          "央行购金需求保持强劲",
+          "实际利率下行环境利好黄金"
         ]
       },
       {
         "name": "摩根士丹利 (Morgan Stanley)",
         "logo": "MS",
         "rating": "neutral",
-        "target_price": 4500,
-        "timeframe": "2026年中",
-        "reasoning": "预计降息推迟至年中，短期震荡",
+        "target_price": 5200,
+        "timeframe": "2026年下半年",
+        "reasoning": "从5700美元下调至5200美元，预期降息推迟",
         "key_points": [
-          "美国强劲消费推迟降息时点",
-          "预计6月和9月降息",
-          "关税传导效应支撑通胀",
-          "上半年美元可能维持强势"
+          "美国强劲经济数据推迟降息预期",
+          "通胀压力持续存在",
+          "地缘政治风险提供支撑",
+          "美元走势影响金价波动"
         ]
       },
       {
         "name": "花旗 (Citi)",
         "logo": "C",
         "rating": "bearish",
-        "target_price": 2700,
-        "timeframe": "长期展望",
-        "reasoning": "若美国经济回到'金发女孩'状态，金价可能回落",
+        "target_price": 4000,
+        "timeframe": "2026年底",
+        "reasoning": "相对保守预测，关注美国经济软着陆可能性",
         "key_points": [
-          "2026年美国经济或回归适中成长",
-          "避险需求将随之减弱",
-          "基准预测与牛市观点相反",
-          "短期曾上调目标至4000美元"
+          "美国经济或实现'金发女孩'式增长",
+          "通胀回落减少避险需求",
+          "美联储政策转向可能晚于预期",
+          "黄金ETF资金流出压力"
         ]
       }
     ],
-    "analysis_summary": "基于当前市场状况的机构预测汇总",
-    "last_updated": "2026-07-04 16:28:28"
+    "analysis_summary": "华尔街顶级投行对2026年黄金价格预测分化：高盛和瑞银显著上调目标价，摩根士丹利下调预期但维持中性，花旗则持相对谨慎态度。整体来看，多数机构看好黄金长期走势，但短期波动风险仍存。",
+    "last_updated": "2026-07-05T02:34:10+08:00",
+    "search_provider": "tavily",
+    "search_results": [
+      {
+        "title": "Gold Price Forecasts 2026 | Scottsdale Bullion & Coin",
+        "url": "https://www.sbcgold.com/gold-price-forecasts/gold-price-forecast-2026",
+        "content": "Morgan Stanley has updated its 2026 price forecast for gold from a bull-case target of $5,700 per ounce. Source. Goldman Sachs. $4,900/oz. In June, Goldman",
+        "score": 0.90432173,
+        "published_date": null
+      },
+      {
+        "title": "UBS raises gold price target to $6,200/oz - Reuters",
+        "url": "https://www.reuters.com/business/finance/goldman-sachs-raises-2026-end-gold-price-forecast-5400oz-2026-01-22",
+        "content": "UBS has raised its gold price target to $6200 per ounce from $5000 for March, June and September 2026, Goldman Sachs - $5,400 by December 2026.",
+        "score": 0.87348515,
+        "published_date": null
+      },
+      {
+        "title": "Gold Price Forecast 2026–2027: Bank Targets & Risks",
+        "url": "https://goldenarkreserve.com/insights/gold-price-forecast-2026-2027",
+        "content": "Goldman's analysts moved their target to $5,400 in January and have held it since, calling the risk skewed to the upside; Morgan Stanley stays",
+        "score": 0.85825616,
+        "published_date": null
+      },
+      {
+        "title": "JP Morgan Predicts RECORD HIGH In 2026 - Facebook",
+        "url": "https://www.facebook.com/PatrickBetDavid.Valuetainment/posts/gold-to-hit-6300-jp-morgan-predicts-record-high-in-2026/1540843094068421",
+        "content": "Goldman Sachs just raised their end-of-2026 gold price forecast to $5,400 per ounce, up from their prior $4,900 target — citing continued demand",
+        "score": 0.85797083,
+        "published_date": null
+      },
+      {
+        "title": "Gold Price Forecast 2026: What the Major Banks Are Predicting Now",
+        "url": "https://goldsilver.com/industry-news/article/gold-price-forecast-2026-2027-key-predictions-from-top-analysts",
+        "content": "Gold price forecast 2026: J.P. Morgan targets ~$6000, Goldman revised to $4900. Gold is near $4190 — 25% below its all-time high.",
+        "score": 0.852752,
+        "published_date": null
+      },
+      {
+        "title": "Gold Price Forecast 2026: Major Banks, Morgan Stanley Cut & Wall ...",
+        "url": "https://ahasignals.com/gold-price-forecast-2026-major-banks",
+        "content": "Compare 11 major bank gold price forecasts for 2026. Updated Apr 2026 after Morgan Stanley cut its H2 target to $5200. Average target: $5641.",
+        "score": 0.8315952,
+        "published_date": null
+      },
+      {
+        "title": "Gold Price Prediction 2026: Can Gold Hit $6000? JPMorgan, UBS ...",
+        "url": "https://www.youtube.com/watch?v=Jrl0vnx-Qus",
+        "content": "Gold Price Prediction 2026: Can Gold Hit $6000? JPMorgan, UBS & Goldman Sachs Reveal Their Targets · Comments.",
+        "score": 0.7429634,
+        "published_date": null
+      },
+      {
+        "title": "Gold Price Predictions for 2026 and 2027 I J.P. Morgan Global ...",
+        "url": "https://www.jpmorgan.com/insights/global-research/commodities/gold-prices",
+        "content": "J.P. Morgan Global Research forecasts prices per ounce to average $6,000/oz by the final quarter of 2026, rising toward $6,300/oz by the end of 2027. Yet Greg",
+        "score": 0.71113056,
+        "published_date": null
+      }
+    ],
+    "data_source": "Tavily Web Search + OpenAI兼容模型"
   },
-  "_timestamp": 1783182509.0132883,
-  "_created_at": "2026-07-04T16:28:29.013300"
+  "_timestamp": 1783190051.0036783,
+  "_created_at": "2026-07-05T02:34:11+08:00"
 }

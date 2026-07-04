@@ -468,12 +468,13 @@ class InvestmentAdviceService:
                 pass
         
         # 1. 首先尝试文件缓存（最快，支持多进程共享）
-        cached_data = self.cache.get()
-        if cached_data:
+        cached_entry = self.cache.get_entry()
+        if cached_entry:
+            cached_data = cached_entry["data"]
             cached_data["metadata"] = {
                 "cached": True,
                 "cache_source": "file",
-                "generated_at": china_now_iso(),
+                "generated_at": cached_entry.get("created_at") or china_now_iso(),
                 "data_sources": ["实时金价数据", "市场因子分析", "机构预测", "24小时新闻"],
                 "analysis_method": "LangChain Agent + DeepSeek LLM"
             }

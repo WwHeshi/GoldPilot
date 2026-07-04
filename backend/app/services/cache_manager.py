@@ -38,7 +38,7 @@ class CacheManager:
         # 1. 检查内存缓存
         with _memory_cache_lock:
             if self.cache_key in _memory_cache:
-                data, timestamp = _memory_cache[self.cache_key]
+                data, timestamp, _created_at = self._unpack_memory_cache(_memory_cache[self.cache_key])
                 if time.time() - timestamp < self.ttl:
                     return data
         
@@ -50,29 +50,63 @@ class CacheManager:
                     timestamp = cached.get('_timestamp', 0)
                     if time.time() - timestamp < self.ttl:
                         data = cached.get('data')
+                        created_at = cached.get('_created_at')
                         # 更新内存缓存
                         with _memory_cache_lock:
-                            _memory_cache[self.cache_key] = (data, timestamp)
+                            _memory_cache[self.cache_key] = (data, timestamp, created_at)
                         return data
         except Exception as e:
             print(f"[CacheManager] 读取文件缓存失败: {e}")
         
         return None
+
+    def get_entry(self) -> Optional[Dict[str, Any]]:
+        """获取缓存数据和缓存元信息（先查内存，再查文件）。"""
+        with _memory_cache_lock:
+            if self.cache_key in _memory_cache:
+                data, timestamp, created_at = self._unpack_memory_cache(_memory_cache[self.cache_key])
+                if time.time() - timestamp < self.ttl:
+                    return {
+                        "data": data,
+                        "timestamp": timestamp,
+                        "created_at": created_at,
+                    }
+
+        try:
+            if self.file_path.exists():
+                with open(self.file_path, 'r', encoding='utf-8') as f:
+                    cached = json.load(f)
+                    timestamp = cached.get('_timestamp', 0)
+                    if time.time() - timestamp < self.ttl:
+                        data = cached.get('data')
+                        created_at = cached.get('_created_at')
+                        with _memory_cache_lock:
+                            _memory_cache[self.cache_key] = (data, timestamp, created_at)
+                        return {
+                            "data": data,
+                            "timestamp": timestamp,
+                            "created_at": created_at,
+                        }
+        except Exception as e:
+            print(f"[CacheManager] 读取文件缓存失败: {e}")
+
+        return None
     
     def set(self, data: Dict[str, Any]) -> None:
         """设置缓存数据（同时更新内存和文件，使用原子写入保证一致性）"""
         timestamp = time.time()
+        created_at = china_now_iso()
         
         # 1. 更新内存缓存
         with _memory_cache_lock:
-            _memory_cache[self.cache_key] = (data, timestamp)
+            _memory_cache[self.cache_key] = (data, timestamp, created_at)
         
         # 2. 更新文件缓存（使用原子写入避免并发冲突和文件损坏）
         try:
             cache_data = {
                 'data': data,
                 '_timestamp': timestamp,
-                '_created_at': china_now_iso()
+                '_created_at': created_at
             }
             
             # 使用临时文件+原子重命名，避免写入中断导致文件损坏
@@ -110,6 +144,13 @@ class CacheManager:
     def exists(self) -> bool:
         """检查缓存是否存在且有效"""
         return self.get() is not None
+
+    @staticmethod
+    def _unpack_memory_cache(value):
+        if len(value) == 3:
+            return value
+        data, timestamp = value
+        return data, timestamp, None
 
 
 def clear_all_cache():

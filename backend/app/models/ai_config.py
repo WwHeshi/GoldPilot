@@ -14,5 +14,6 @@ class AIConfig(Base):
     model_name = Column(String(200), nullable=False, default="")
     api_key = Column(String(500), nullable=False, default="")
     enable_web_search = Column(Boolean, nullable=False, default=False)
+    web_search_api_key = Column(String(500), nullable=False, default="")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

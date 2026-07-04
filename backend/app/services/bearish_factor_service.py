@@ -13,6 +13,7 @@ from app.models.analysis import MarketFactor, FactorType, ImpactLevel
 from app.services.cache_manager import CacheManager
 from app.services.zhipu_service import get_zhipu_service
 from app.services.ai_config_service import build_chat_openai
+from app.services.web_search_service import WebSearchService, format_search_results
 from app.utils.timezone import china_now, china_now_iso, china_now_text, format_china_iso
 import json
 
@@ -32,6 +33,9 @@ class BearishFactorAnalyzer:
         self._llm = None
         self.zhipu_service = get_zhipu_service()
         self.prompt_template = """你是一位专业的黄金市场分析师，专注于分析影响黄金价格下跌的因素。
+
+当前中国时间：{current_time}
+数据新鲜度要求：请基于当前时间和最近新闻分析。严禁把2024年或更早年份的新闻、预期、政策路径当作当前事实；除非明确标注为历史对比，否则不要输出2024年内容。
 
 当前金价数据：
 - 当前价格: {current_price} 美元/盎司
@@ -203,14 +207,17 @@ class BearishFactorAnalyzer:
         """执行分析 - 使用智谱AI实时搜索"""
         # 使用智谱AI实时搜索获取最新看空因素
         try:
-            print("[BearishFactor] 使用智谱AI实时搜索看空因素...")
-            search_result = self._search_bearish_factors()
+            print("[BearishFactor] 使用Tavily搜索看空因素...")
+            search_result = self._search_bearish_factors(db)
             
             # 检查搜索结果是否有效
             if search_result.get("bearish_factors") and len(search_result["bearish_factors"]) > 0:
+                if self._is_stale_analysis(search_result):
+                    print("[BearishFactor] 搜索结果包含过期年份内容，改用备用方案")
+                    raise ValueError("stale bearish analysis")
                 print(f"[BearishFactor] 成功获取 {len(search_result['bearish_factors'])} 个看空因素")
                 search_result["last_updated"] = china_now_iso()
-                search_result["data_source"] = "智谱AI实时搜索"
+                search_result["data_source"] = "Tavily Web Search + OpenAI兼容模型"
                 return search_result
             else:
                 print("[BearishFactor] 搜索结果为空，使用备用方案")
@@ -221,9 +228,29 @@ class BearishFactorAnalyzer:
         # 备用方案：使用传统方式分析
         return self._analyze_with_traditional_llm(db)
     
-    def _search_bearish_factors(self) -> Dict[str, Any]:
-        """使用智谱AI搜索看空因素"""
-        prompt = """请搜索并分析当前黄金市场的看空因素。
+    def _search_bearish_factors(self, db: Session) -> Dict[str, Any]:
+        """使用Tavily搜索结果分析看空因素"""
+        current_time = china_now_text()
+        search = WebSearchService(db).search(
+            "latest gold price bearish risks stronger dollar delayed rate cuts profit taking geopolitical easing economic growth",
+            max_results=8,
+        )
+        if not search.get("results"):
+            return {
+                "bearish_factors": [],
+                "analysis_summary": search.get("message", "Tavily搜索结果为空"),
+            }
+
+        search_context = format_search_results(search, max_chars=5000)
+        prompt = f"""你是一位专业的黄金市场分析师，专注于分析影响黄金价格下跌的因素。
+
+当前中国时间：{current_time}
+
+下面是 Tavily Web Search 返回的最新搜索结果，请只基于这些搜索结果和当前行情常识进行分析。
+严禁把 2024 年或更早年份的新闻、预期、数据当作当前事实；除非明确标注为历史对比，否则不要输出 2024 年内容。
+
+Tavily 搜索结果：
+{search_context}
 
 请搜索最新的黄金市场新闻和分析报告，识别出5个最重要的看空因子：
 
@@ -252,7 +279,7 @@ class BearishFactorAnalyzer:
         }
     ],
     "analysis_summary": "基于实时搜索的综合分析总结...",
-    "search_time": "2026-02-01"
+    "search_time": "{current_time}"
 }
 
 注意事项：
@@ -263,17 +290,34 @@ class BearishFactorAnalyzer:
 5. 确保5个因子都有数据
 """
         
-        result = self.zhipu_service.search_json(prompt)
-        if result.get("bearish_factors"):
-            return result
+        try:
+            response = self.llm.invoke(prompt)
+            result = self._extract_json(response.content)
+            if result.get("bearish_factors"):
+                result["search_provider"] = "tavily"
+                result["search_results"] = search.get("results", [])
+                return result
+        except Exception as error:
+            print(f"解析看空因素失败: {error}")
 
-        error = result.get("error", "解析失败")
-        print(f"搜索看空因素失败: {error}")
         return {
             "bearish_factors": [],
-            "analysis_summary": f"搜索失败: {error}",
-            "raw_content": result.get("raw_content", "")
+            "analysis_summary": "搜索或解析失败",
         }
+
+    def _extract_json(self, content: str) -> Dict[str, Any]:
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            if start != -1 and end > start:
+                return json.loads(content[start:end])
+            raise
+
+    def _is_stale_analysis(self, result: Dict[str, Any]) -> bool:
+        content = json.dumps(result, ensure_ascii=False)
+        return any(year in content for year in ("2024年", "2023年", "2022年", "2021年", "2020年"))
     
     def _analyze_with_traditional_llm(self, db: Session) -> Dict[str, Any]:
         """使用传统LLM分析（备用方案）"""
@@ -539,12 +583,15 @@ class BearishFactorService:
         # 1. 首先尝试内存缓存（最快，<1ms）
         memory_cache = self._get_from_memory_cache()
         if memory_cache:
-            memory_cache["metadata"] = {
-                "cached": True,
-                "cache_source": "memory",
-                "generated_at": china_now_iso()
-            }
-            return memory_cache
+            if self.analyzer._is_stale_analysis(memory_cache):
+                print("[BearishFactor] 缓存包含过期年份内容，已忽略")
+            else:
+                memory_cache["metadata"] = {
+                    "cached": True,
+                    "cache_source": "memory",
+                    "generated_at": china_now_iso()
+                }
+                return memory_cache
 
         # 2. 无内存缓存时，直接返回默认数据并触发后台更新
         # 不查询数据库，避免阻塞

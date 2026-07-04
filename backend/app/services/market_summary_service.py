@@ -343,14 +343,15 @@ class MarketSummaryService:
                 pass
 
         # 1. 首先尝试文件缓存
-        cached_data = self.cache.get()
-        if cached_data:
+        cached_entry = self.cache.get_entry()
+        if cached_entry:
+            cached_data = cached_entry["data"]
             # 用实时价格覆盖缓存中的价格
             cached_data["current_price"] = realtime_price
             cached_data["metadata"] = {
                 "cached": True,
                 "cache_source": "file",
-                "generated_at": china_now_iso(),
+                "generated_at": cached_entry.get("created_at") or china_now_iso(),
                 "data_sources": ["实时金价数据", "看涨因子", "看跌因子", "机构预测", "24小时新闻"],
                 "analysis_method": "DeepSeek LLM 综合分析"
             }

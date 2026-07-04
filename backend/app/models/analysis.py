@@ -5,12 +5,16 @@ from app.database import Base
 import enum
 
 
-class FactorType(enum.Enum):
+def _enum_values(enum_cls):
+    return [item.value for item in enum_cls]
+
+
+class FactorType(str, enum.Enum):
     BULLISH = "bullish"
     BEARISH = "bearish"
 
 
-class ImpactLevel(enum.Enum):
+class ImpactLevel(str, enum.Enum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -20,12 +24,19 @@ class MarketFactor(Base):
     __tablename__ = "market_factors"
     
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(Enum(FactorType), nullable=False, index=True)
+    type = Column(
+        Enum(FactorType, values_callable=_enum_values, validate_strings=True),
+        nullable=False,
+        index=True,
+    )
     title = Column(String(200), nullable=False)
     subtitle = Column(String(200))
     description = Column(Text)
     details = Column(JSON)
-    impact = Column(Enum(ImpactLevel), default=ImpactLevel.MEDIUM)
+    impact = Column(
+        Enum(ImpactLevel, values_callable=_enum_values, validate_strings=True),
+        default=ImpactLevel.MEDIUM,
+    )
     confidence = Column(Float, default=0.8)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
