@@ -1,154 +1,155 @@
-"""智谱AI服务 - 用于实时搜索和数据获取"""
+"""OpenAI-compatible AI service for optional web-search style calls."""
 import json
+from datetime import datetime
 from typing import Dict, Any, Optional
-from openai import OpenAI
-from app.config import settings
+
+from sqlalchemy.orm import Session
+
+from app.database import SessionLocal
+from app.services.ai_config_service import AIConfigService, build_openai_client
 
 
 class ZhipuService:
-    """智谱AI服务类 - 支持Web Search功能"""
-    
-    def __init__(self):
-        self.client = OpenAI(
-            api_key=settings.ZHIPU_API_KEY,
-            base_url=settings.ZHIPU_BASE_URL
-        )
-        self.model = settings.ZHIPU_MODEL
-    
+    """Backward-compatible service name, now driven by generic OpenAI-compatible config."""
+
+    def _get_config(self):
+        db = SessionLocal()
+        try:
+            return AIConfigService(db).get_resolved_config()
+        finally:
+            db.close()
+
+    def _create_client(self):
+        config = self._get_config()
+        return build_openai_client(config), config
+
+    def _extract_json(self, content: str) -> Dict[str, Any]:
+        if "```json" in content:
+            content = content.split("```json", 1)[1].split("```", 1)[0]
+        elif "```" in content:
+            content = content.split("```", 1)[1].split("```", 1)[0]
+
+        try:
+            return json.loads(content.strip())
+        except json.JSONDecodeError:
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            if start != -1 and end > start:
+                return json.loads(content[start:end])
+            raise
+
     def search_institution_predictions(self) -> Dict[str, Any]:
-        """
-        搜索四大机构对黄金的最新预测
-        
-        Returns:
-            包含机构预测数据的字典
-        """
-        prompt = """请搜索并整理以下四家主流机构对黄金价格的最新预测：
-1. 高盛 (Goldman Sachs)
-2. 瑞银 (UBS)  
-3. 摩根士丹利 (Morgan Stanley)
-4. 花旗 (Citi)
+        prompt = """Search for the latest gold forecasts from Goldman Sachs, UBS, Morgan Stanley, and Citi.
 
-请搜索2026年最新的机构预测报告和分析师观点，对于每家机构提供：
-- 目标价格（美元）
-- 时间框架（如2026年底、2026年中、2026年Q3等）
-- 评级（看涨/看跌/中性）
-- 核心理由（一句话总结）
-- 关键要点（4个支撑论据）
-
-请严格按照以下JSON格式返回：
-
+Return valid JSON only:
 {
-    "institutions": [
-        {
-            "name": "高盛 (Goldman Sachs)",
-            "logo": "GS",
-            "rating": "bullish",
-            "target_price": 5400,
-            "timeframe": "2026年底",
-            "reasoning": "...",
-            "key_points": ["...", "...", "...", "..."]
-        }
-    ],
-    "analysis_summary": "基于实时搜索的机构预测汇总",
-    "search_time": "2026-02-01"
+  "institutions": [
+    {
+      "name": "Goldman Sachs",
+      "logo": "GS",
+      "rating": "bullish",
+      "target_price": 5400,
+      "timeframe": "end of 2026",
+      "reasoning": "one-sentence summary",
+      "key_points": ["point1", "point2", "point3", "point4"]
+    }
+  ],
+  "analysis_summary": "short summary",
+  "search_time": "YYYY-MM-DD HH:MM:SS"
 }
 
-注意：
-1. 必须返回有效的JSON格式
-2. target_price必须是数字
-3. rating只能是：bullish, bearish, neutral
-4. 确保四家机构都有数据
-5. 如果某家机构没有最新预测，请标注"暂无最新预测"
+Rules:
+1. rating must be bullish, bearish, or neutral.
+2. target_price must be numeric.
+3. Include all four institutions when possible.
+4. If search is unavailable, infer cautiously from the latest known context and say so in reasoning.
 """
-        
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{
-                    "role": "user",
-                    "content": prompt
-                }],
-                tools=[{
+            client, config = self._create_client()
+            request_kwargs = {
+                "model": config.model_name,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 4096,
+            }
+            if config.enable_web_search:
+                request_kwargs["tools"] = [{
                     "type": "web_search",
                     "web_search": {
                         "enable": True,
-                        "search_result": True
-                    }
-                }],
-                temperature=0.3,
-                max_tokens=4096
-            )
-            
-            content = response.choices[0].message.content
-            
-            # 尝试解析JSON
-            try:
-                # 清理可能的markdown代码块
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0]
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0]
-                
-                result = json.loads(content.strip())
-                return result
-            except json.JSONDecodeError:
-                # 如果解析失败，返回原始内容包装
-                return {
-                    "institutions": [],
-                    "analysis_summary": "搜索完成但解析失败",
-                    "raw_content": content,
-                    "search_time": "2026-02-01"
-                }
-                
+                        "search_result": True,
+                    },
+                }]
+
+            response = client.chat.completions.create(**request_kwargs)
+            content = response.choices[0].message.content or ""
+            result = self._extract_json(content)
+            result.setdefault("search_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            return result
         except Exception as e:
-            print(f"智谱AI搜索失败: {e}")
             return {
                 "institutions": [],
-                "analysis_summary": f"搜索失败: {str(e)}",
-                "search_time": "2026-02-01"
+                "analysis_summary": f"AI request failed: {str(e)}",
+                "search_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
-    
-    def search_gold_news(self, query: str = "黄金价格走势 2026") -> str:
-        """
-        搜索黄金相关新闻
-        
-        Args:
-            query: 搜索关键词
-            
-        Returns:
-            搜索结果的文本摘要
-        """
+
+    def search_gold_news(self, query: str = "gold price market news") -> str:
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{
+            client, config = self._create_client()
+            request_kwargs = {
+                "model": config.model_name,
+                "messages": [{
                     "role": "user",
-                    "content": f"搜索关于'{query}'的最新新闻，并总结关键信息"
+                    "content": f"Summarize the latest news about: {query}",
                 }],
-                tools=[{
+                "temperature": 0.5,
+                "max_tokens": 2048,
+            }
+            if config.enable_web_search:
+                request_kwargs["tools"] = [{
                     "type": "web_search",
                     "web_search": {
                         "enable": True,
-                        "search_result": True
-                    }
-                }],
-                temperature=0.5,
-                max_tokens=2048
-            )
-            
-            return response.choices[0].message.content
-            
+                        "search_result": True,
+                    },
+                }]
+            response = client.chat.completions.create(**request_kwargs)
+            return response.choices[0].message.content or ""
         except Exception as e:
-            print(f"新闻搜索失败: {e}")
-            return f"搜索失败: {str(e)}"
+            return f"AI request failed: {str(e)}"
+
+    def search_json(self, prompt: str) -> Dict[str, Any]:
+        try:
+            client, config = self._create_client()
+            request_kwargs = {
+                "model": config.model_name,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 4096,
+            }
+            if config.enable_web_search:
+                request_kwargs["tools"] = [{
+                    "type": "web_search",
+                    "web_search": {
+                        "enable": True,
+                        "search_result": True,
+                    },
+                }]
+
+            response = client.chat.completions.create(**request_kwargs)
+            content = response.choices[0].message.content or ""
+            return self._extract_json(content)
+        except Exception as e:
+            return {
+                "error": str(e),
+                "raw_content": "",
+            }
 
 
-# 单例模式
 _zhipu_service: Optional[ZhipuService] = None
 
 
 def get_zhipu_service() -> ZhipuService:
-    """获取智谱AI服务实例"""
     global _zhipu_service
     if _zhipu_service is None:
         _zhipu_service = ZhipuService()

@@ -1,4 +1,4 @@
-<h1 align="center">GoldPilot</h1>
+<h1 align="center">🥇 GoldPilot</h1>
 
 <p align="center">
   <strong>基于多智能体协作的下一代黄金市场智能分析引擎</strong><br>
@@ -119,7 +119,7 @@
 cd backend
 cp .env.example .env
 
-# 编辑 .env 文件，填入必要的 API 密钥
+# 编辑 .env 文件，填入数据库等基础配置
 ```
 
 **必需的环境变量：**
@@ -131,16 +131,12 @@ cp .env.example .env
 # MySQL数据库连接URL
 DATABASE_URL=mysql+pymysql://root:your_password@localhost:3306/gold_analysis
 
-# ============================================
-# AI API 密钥配置
-# ============================================
-# 智谱AI (Zhipu AI) - 用于实时搜索、新闻分析、机构预测
-# 获取地址: https://open.bigmodel.cn/
-ZHIPU_API_KEY=your_zhipu_api_key_here
-
-# DeepSeek - 用于深度推理、投资建议生成
-# 获取地址: https://www.deepseek.com/
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
+# AI 接口配置已改为前端页面内填写
+# 启动后在页面右上角 `AI 设置` 中填写：
+# - Base URL
+# - Model
+# - API Key
+# 如果暂时不填写，AI 刷新类功能会使用缓存、默认数据或降级结果
 ```
 
 #### 2. 安装依赖
@@ -250,7 +246,7 @@ npm run dev
 
 Docker 部署已经在 `docker-compose.yml` 中内置 MySQL、后端和前端配置，不需要复制或编辑 `.env` 文件。
 
-> 💡 **注意**：默认配置会让应用完整启动。未填写 AI API Key 时，AI 刷新类能力会使用默认/缓存数据或降级结果；如需真实 AI 实时分析，可以后续在 `docker-compose.yml` 中填入 `ZHIPU_API_KEY` 和 `DEEPSEEK_API_KEY`。
+> 💡 **注意**：默认配置会让应用完整启动。未填写 AI 配置时，AI 刷新类能力会使用默认/缓存数据或降级结果；如需真实 AI 实时分析，启动后在页面右上角 `AI 设置` 中填写 `Base URL`、`Model` 和 `API Key`。
 
 #### 2. 启动服务
 
@@ -263,6 +259,14 @@ docker-compose ps
 
 # 查看日志（观察数据初始化进度）
 docker-compose logs -f backend
+```
+
+**热更新开发版：**
+
+```bash
+# 前端 Vite HMR: http://localhost:5173
+# 后端 Uvicorn reload: http://localhost:8001
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 **国内用户网络配置（如无法下载镜像）：**

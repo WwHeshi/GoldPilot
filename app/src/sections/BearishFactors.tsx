@@ -14,6 +14,7 @@ import {
   Sparkles,
   Bot
 } from 'lucide-react';
+import { formatChinaDateTime } from '../lib/time';
 import { analysisApi, type BearishFactor } from '../services/api';
 
 // 图标映射
@@ -266,7 +267,7 @@ export default function BearishFactors() {
             )}
             {lastUpdated && (
               <span className="text-gray-500 text-sm">
-                更新时间: {new Date(lastUpdated).toLocaleString('zh-CN')}
+                更新时间: {formatChinaDateTime(lastUpdated)}
               </span>
             )}
             <button

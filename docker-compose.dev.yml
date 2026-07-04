@@ -1,0 +1,85 @@
+# Hot-reload development stack.
+# Frontend: Vite dev server with HMR on http://localhost:5173
+# Backend: Uvicorn reload on http://localhost:8001
+# MySQL: exposed on localhost:3307 to avoid clashing with the normal stack.
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: goldmind123
+      MYSQL_DATABASE: gold_analysis
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - dev_mysql_data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - goldpilot_dev
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "python init_db.py || true;
+      uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+    environment:
+      DATABASE_URL: mysql+pymysql://root:goldmind123@mysql:3306/gold_analysis
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: goldmind123
+      DB_NAME: gold_analysis
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      SCHEDULER_ENABLED: "false"
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - goldpilot_dev
+
+  frontend:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      - backend
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./app:/app
+      - dev_frontend_node_modules:/app/node_modules
+    command: >
+      sh -c "if [ ! -d node_modules/react ]; then npm ci; fi;
+      npm run dev -- --host 0.0.0.0 --port 5173"
+    networks:
+      - goldpilot_dev
+
+volumes:
+  dev_mysql_data:
+    driver: local
+  dev_frontend_node_modules:
+    driver: local
+
+networks:
+  goldpilot_dev:
+    driver: bridge

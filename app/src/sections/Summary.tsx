@@ -13,6 +13,7 @@ import {
   Brain,
   Bot
 } from 'lucide-react';
+import { formatChinaDateTime } from '../lib/time';
 import { marketSummaryApi, type MarketSummaryResponse } from '../services/api';
 import { useGoldData } from '@/contexts/GoldDataContext';
 
@@ -280,7 +281,7 @@ export default function Summary() {
             </button>
             {summary?.metadata?.generated_at && (
               <span className="text-xs text-gray-500">
-                上次更新: {new Date(summary.metadata.generated_at).toLocaleString('zh-CN')}
+                上次更新: {formatChinaDateTime(summary.metadata.generated_at)}
               </span>
             )}
           </div>

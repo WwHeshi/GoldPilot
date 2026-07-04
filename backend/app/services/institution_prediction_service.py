@@ -8,9 +8,10 @@ import asyncio
 
 from app.models.news import GoldNews
 from app.models.analysis import InstitutionView
-from app.config import settings
 from app.services.cache_manager import CacheManager
 from app.services.zhipu_service import get_zhipu_service
+from app.services.ai_config_service import build_chat_openai
+from app.utils.timezone import china_now, china_now_iso, china_now_text, format_china_iso
 import json
 
 # 延迟导入langchain_openai（避免启动时慢）
@@ -131,14 +132,13 @@ class InstitutionPredictionAnalyzer:
     def llm(self):
         """延迟创建LLM实例"""
         if self._llm is None:
-            ChatOpenAIClass = _get_chat_openai()
-            self._llm = ChatOpenAIClass(
-                model="deepseek-chat",
-                openai_api_key=settings.DEEPSEEK_API_KEY,
-                openai_api_base=settings.DEEPSEEK_BASE_URL,
-                temperature=0.7,
-                max_tokens=4096
-            )
+            from app.database import SessionLocal
+
+            db = SessionLocal()
+            try:
+                self._llm = build_chat_openai(db, temperature=0.7, max_tokens=4096)
+            finally:
+                db.close()
         return self._llm
 
     def fetch_recent_news(self, db: Session, hours: int = 24) -> List[GoldNews]:
@@ -159,9 +159,8 @@ class InstitutionPredictionAnalyzer:
 
         # RSS源列表
         rss_sources = [
-            ('https://finance.sina.com.cn/money/gold/gold_xh.shtml', '新浪财经'),
-            ('https://www.fx168.com/gold/', 'FX168'),
-            ('https://www.jin10.com/', '金十数据'),
+            ('https://news.kitco.com/rss/kitconewsfeed.xml', 'Kitco News'),
+            ('https://kingworldnews.com/feed/', 'King World News'),
         ]
 
         for url, source in rss_sources:
@@ -190,7 +189,7 @@ class InstitutionPredictionAnalyzer:
             # 检查搜索结果是否有效
             if search_result.get("institutions") and len(search_result["institutions"]) > 0:
                 print(f"[InstitutionPrediction] 成功获取 {len(search_result['institutions'])} 家机构预测")
-                search_result["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                search_result["last_updated"] = china_now_iso()
                 search_result["data_source"] = "智谱AI实时搜索"
                 return search_result
             else:
@@ -224,7 +223,7 @@ class InstitutionPredictionAnalyzer:
             ])
 
         # 2. 构建prompt并调用LLM
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_time = china_now_text()
         prompt = self.prompt_template.format(
             news_content=news_content,
             current_time=current_time
@@ -317,7 +316,7 @@ class InstitutionPredictionAnalyzer:
                 }
             ],
             "analysis_summary": "基于当前市场状况的机构预测汇总",
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": china_now_iso()
         }
 
     def save_to_database(self, db: Session, analysis_result: Dict[str, Any]) -> None:
@@ -337,7 +336,7 @@ class InstitutionPredictionAnalyzer:
                 existing.timeframe = inst_data.get("timeframe", "")
                 existing.reasoning = inst_data.get("reasoning", "")
                 existing.key_points = inst_data.get("key_points", [])
-                existing.updated_at = datetime.now()
+                existing.updated_at = china_now()
             else:
                 # 创建新记录
                 new_view = InstitutionView(
@@ -389,7 +388,7 @@ class InstitutionPredictionService:
                 result["metadata"] = {
                     "cached": False,
                     "cache_source": "realtime_search",
-                    "generated_at": datetime.now().isoformat(),
+                    "generated_at": china_now_iso(),
                     "message": "基于智谱AI实时搜索的最新数据"
                 }
                 return result
@@ -404,7 +403,7 @@ class InstitutionPredictionService:
             cached_data["metadata"] = {
                 "cached": True,
                 "cache_source": "file",
-                "generated_at": datetime.now().isoformat()
+                "generated_at": china_now_iso()
             }
             return cached_data
 
@@ -430,11 +429,11 @@ class InstitutionPredictionService:
                     for v in recent_views[:4]
                 ],
                 "analysis_summary": "基于最新市场数据的机构预测",
-                "last_updated": recent_views[0].updated_at.strftime("%Y-%m-%d %H:%M:%S") if recent_views else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "last_updated": format_china_iso(recent_views[0].updated_at) if recent_views else china_now_iso(),
                 "metadata": {
                     "cached": True,
                     "cache_source": "database",
-                    "generated_at": datetime.now().isoformat()
+                    "generated_at": china_now_iso()
                 }
             }
             # 更新文件缓存
@@ -488,7 +487,7 @@ class InstitutionPredictionService:
                 }
             ],
             "analysis_summary": "正在分析最新机构预测数据，请稍后刷新查看AI分析结果",
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_updated": china_now_iso(),
             "metadata": {
                 "cached": False,
                 "status": "analyzing",
@@ -513,7 +512,7 @@ class InstitutionPredictionService:
                 self.analyzer.save_to_database(db, result)
                 # 更新文件缓存
                 self.cache.set(result)
-                print(f"[InstitutionPrediction] 后台分析完成，时间: {datetime.now()}")
+                print(f"[InstitutionPrediction] 后台分析完成，时间: {china_now_text()}")
             finally:
                 db.close()
         except Exception as e:

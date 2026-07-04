@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Building2, TrendingUp, TrendingDown, Minus, Target, Calendar, RefreshCw, Loader2, Brain, Sparkles, Bot } from 'lucide-react';
+import { formatChinaDateTime } from '../lib/time';
 import { institutionApi, type InstitutionPrediction } from '../services/api';
 
 // 默认机构预测（当API不可用时使用）
@@ -254,7 +255,7 @@ export default function InstitutionalViews() {
             )}
             {lastUpdated && (
               <span className="text-gray-500 text-sm">
-                更新时间: {new Date(lastUpdated).toLocaleString('zh-CN')}
+                更新时间: {formatChinaDateTime(lastUpdated)}
               </span>
             )}
             <button

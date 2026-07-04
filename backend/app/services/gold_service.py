@@ -3,6 +3,8 @@ import re
 import requests
 import threading
 import json
+import csv
+from io import StringIO
 from datetime import datetime, date
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
@@ -431,59 +433,80 @@ class GoldService:
             return {"status": "震荡", "description": "观望为主"}
     
     def fetch_and_save_prices(self):
-        """从Yahoo Finance获取历史价格数据（备用方案）"""
+        """从新浪 GlobalFuturesService 获取并保存黄金历史价格"""
         try:
-            import yfinance as yf
-            ticker = yf.Ticker("GC=F")
-            hist = ticker.history(period="1y")
-            
-            for index, row in hist.iterrows():
-                date_obj = index.date()
-                
-                # 检查是否已存在
+            url = (
+                "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/"
+                "var_GC=/GlobalFuturesService.getGlobalFuturesDailyKLine?symbol=GC"
+            )
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://finance.sina.com.cn'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            match = re.search(r'var_GC=\((\[.*?\])\);', response.text, re.DOTALL)
+            if not match:
+                raise ValueError("Sina GC historical response did not match JSONP format")
+
+            rows = json.loads(match.group(1))
+            for item in rows:
+                date_obj = datetime.strptime(item['date'], '%Y-%m-%d').date()
                 existing = self.db.query(GoldPrice).filter(GoldPrice.date == date_obj).first()
                 if existing:
                     continue
-                
+
                 price = GoldPrice(
                     date=date_obj,
-                    open_price=round(row['Open'], 2),
-                    high_price=round(row['High'], 2),
-                    low_price=round(row['Low'], 2),
-                    close_price=round(row['Close'], 2),
-                    volume=int(row['Volume']) if not pd.isna(row['Volume']) else 0
+                    open_price=round(float(item.get('open') or item.get('close')), 2),
+                    high_price=round(float(item.get('high') or item.get('close')), 2),
+                    low_price=round(float(item.get('low') or item.get('close')), 2),
+                    close_price=round(float(item.get('close')), 2),
+                    volume=int(float(item.get('volume') or 0))
                 )
                 self.db.add(price)
-            
+
             self.db.commit()
-            print(f"[GoldService] 成功保存历史价格数据")
+            print("[GoldService] Saved historical gold prices from Sina GlobalFuturesService")
+            return
         except Exception as e:
             print(f"[GoldService] 获取历史价格失败: {e}")
     
     def fetch_and_save_dollar_index(self):
-        """获取美元指数（备用方案）"""
+        """从 FRED 获取并保存美元指数历史数据"""
         try:
-            import yfinance as yf
-            ticker = yf.Ticker("DX-Y.NYB")
-            hist = ticker.history(period="1y")
-            
-            for index, row in hist.iterrows():
-                date_obj = index.date()
-                
+            url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            reader = csv.DictReader(StringIO(response.text))
+            for item in reader:
+                value = item.get('DTWEXBGS')
+                if not value or value == '.':
+                    continue
+
+                date_obj = datetime.strptime(item['observation_date'], '%Y-%m-%d').date()
                 existing = self.db.query(DollarIndex).filter(DollarIndex.date == date_obj).first()
                 if existing:
                     continue
-                
+
+                close_price = round(float(value), 4)
                 dollar = DollarIndex(
                     date=date_obj,
-                    open_price=round(row['Open'], 2),
-                    high_price=round(row['High'], 2),
-                    low_price=round(row['Low'], 2),
-                    close_price=round(row['Close'], 2)
+                    open_price=close_price,
+                    high_price=close_price,
+                    low_price=close_price,
+                    close_price=close_price
                 )
                 self.db.add(dollar)
-            
+
             self.db.commit()
+            print("[GoldService] Saved broad dollar index data from FRED DTWEXBGS")
+            return
         except Exception as e:
             print(f"[GoldService] 获取美元指数失败: {e}")
     

@@ -7,9 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from app import models  # noqa: F401
 from app.config import settings
 from app.database import engine, Base
-from app.routers import gold_prices, analysis, news, predictions
+from app.routers import gold_prices, analysis, news, predictions, ai_config
 from app.scheduler import init_scheduler, shutdown_scheduler
 
 
@@ -143,6 +144,7 @@ app.include_router(gold_prices.router, prefix="/api/gold", tags=["黄金价格"]
 app.include_router(analysis.router, prefix="/api/gold", tags=["市场分析"])
 app.include_router(news.router, prefix="/api/gold", tags=["新闻资讯"])
 app.include_router(predictions.router, prefix="/api/gold", tags=["价格预测"])
+app.include_router(ai_config.router, prefix="/api/gold", tags=["AI Config"])
 
 
 @app.get("/")
@@ -228,11 +230,22 @@ async def health_check():
     
     # 5. 检查AI服务配置
     try:
+        from app.database import SessionLocal
+        from app.services.ai_config_service import AIConfigService
+
+        db = SessionLocal()
+        try:
+            resolved = AIConfigService(db).get_resolved_config()
+        finally:
+            db.close()
+
         health_status["services"]["ai_config"] = {
             "status": "ok",
-            "deepseek_configured": bool(settings.DEEPSEEK_API_KEY),
-            "zhipu_configured": bool(settings.ZHIPU_API_KEY),
-            "llm_provider": settings.LLM_PROVIDER
+            "configured": bool(resolved.api_key and resolved.base_url and resolved.model_name),
+            "provider_name": resolved.provider_name,
+            "model_name": resolved.model_name,
+            "base_url": resolved.base_url,
+            "web_search_enabled": resolved.enable_web_search
         }
     except Exception as e:
         health_status["services"]["ai_config"] = {

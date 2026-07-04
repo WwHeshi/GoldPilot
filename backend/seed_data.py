@@ -15,6 +15,8 @@ import sys
 import re
 import requests
 import json
+import csv
+from io import StringIO
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
@@ -89,24 +91,23 @@ def fetch_gold_from_sina() -> Optional[List[Dict]]:
         print("  尝试从新浪财经获取黄金数据...")
         
         # 新浪财经期货历史数据API
-        url = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php"
-        params = {
-            'var': 'GC',
-            'symbol': 'GC'
-        }
+        url = (
+            "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/"
+            "var_GC=/GlobalFuturesService.getGlobalFuturesDailyKLine?symbol=GC"
+        )
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Referer': 'https://finance.sina.com.cn'
         }
         
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             raise DataSourceError(f"HTTP {response.status_code}")
         
         # 解析JSONP响应
         text_data = response.text
-        match = re.search(r'var\s+GC\s*=\s*(\[.*?\]);', text_data, re.DOTALL)
+        match = re.search(r'var_GC=\((\[.*?\])\);', text_data, re.DOTALL)
         
         if not match:
             raise DataSourceError("无法解析响应数据")
@@ -116,7 +117,7 @@ def fetch_gold_from_sina() -> Optional[List[Dict]]:
         result = []
         for item in data:
             # 数据格式: [日期, 开盘价, 最高价, 最低价, 收盘价, 成交量]
-            item_date = datetime.strptime(item[0], '%Y-%m-%d').date()
+            item_date = datetime.strptime(item['date'], '%Y-%m-%d').date()
             
             # 只保留2025年至今的数据
             if item_date < START_DATE:
@@ -124,11 +125,11 @@ def fetch_gold_from_sina() -> Optional[List[Dict]]:
             
             result.append({
                 'date': item_date,
-                'open_price': safe_float(item[1]),
-                'high_price': safe_float(item[2]),
-                'low_price': safe_float(item[3]),
-                'close_price': safe_float(item[4]),
-                'volume': int(safe_float(item[5], 0))
+                'open_price': safe_float(item.get('open')),
+                'high_price': safe_float(item.get('high')),
+                'low_price': safe_float(item.get('low')),
+                'close_price': safe_float(item.get('close')),
+                'volume': int(safe_float(item.get('volume'), 0))
             })
         
         if result:
@@ -152,6 +153,9 @@ def fetch_gold_from_eastmoney() -> Optional[List[Dict]]:
         print("  尝试从东方财富获取黄金数据...")
         
         # 东方财富黄金期货代码: 黄金主连 (AU0)
+        print("  Eastmoney historical source is disabled because it returns data:null.")
+        return None
+
         url = "http://push2his.eastmoney.com/api/qt/stock/kline/get"
         params = {
             'secid': '113.AU0',  # 黄金主连
@@ -213,6 +217,8 @@ def fetch_gold_from_yahoo() -> Optional[List[Dict]]:
     """
     try:
         print("  尝试从Yahoo Finance获取黄金数据...")
+        print("  Yahoo Finance source is disabled because the chart endpoint returns 403.")
+        return None
         
         try:
             import yfinance as yf
@@ -264,14 +270,6 @@ def fetch_gold_history() -> List[Dict]:
     if data:
         return data
     
-    data = fetch_gold_from_eastmoney()
-    if data:
-        return data
-    
-    data = fetch_gold_from_yahoo()
-    if data:
-        return data
-    
     raise DataSourceError("所有黄金数据源均不可用")
 
 
@@ -289,44 +287,39 @@ def fetch_dollar_from_sina() -> Optional[List[Dict]]:
         print("  尝试从新浪财经获取美元指数数据...")
         
         # 新浪财经美元指数代码
-        url = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php"
-        params = {
-            'var': 'DINIW',
-            'symbol': 'DINIW'
-        }
+        url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': 'https://finance.sina.com.cn'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
         
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             raise DataSourceError(f"HTTP {response.status_code}")
         
         # 解析JSONP响应
-        text_data = response.text
-        match = re.search(r'var\s+DINIW\s*=\s*(\[.*?\]);', text_data, re.DOTALL)
-        
-        if not match:
-            raise DataSourceError("无法解析响应数据")
-        
-        data = json.loads(match.group(1))
+        reader = csv.DictReader(StringIO(response.text))
+        data = list(reader)
         
         result = []
         for item in data:
-            item_date = datetime.strptime(item[0], '%Y-%m-%d').date()
+            value = item.get('DTWEXBGS')
+            if not value or value == '.':
+                continue
+
+            item_date = datetime.strptime(item['observation_date'], '%Y-%m-%d').date()
             
             # 只保留2025年至今的数据
             if item_date < START_DATE:
                 continue
             
+            close_price = safe_float(value)
             result.append({
                 'date': item_date,
-                'open_price': safe_float(item[1]),
-                'high_price': safe_float(item[2]),
-                'low_price': safe_float(item[3]),
-                'close_price': safe_float(item[4])
+                'open_price': close_price,
+                'high_price': close_price,
+                'low_price': close_price,
+                'close_price': close_price
             })
         
         if result:
@@ -346,6 +339,8 @@ def fetch_dollar_from_eastmoney() -> Optional[List[Dict]]:
     """
     try:
         print("  尝试从东方财富获取美元指数数据...")
+        print("  Eastmoney historical source is disabled because it returns data:null.")
+        return None
         
         # 东方财富美元指数代码
         url = "http://push2his.eastmoney.com/api/qt/stock/kline/get"
@@ -407,6 +402,8 @@ def fetch_dollar_from_yahoo() -> Optional[List[Dict]]:
     """
     try:
         print("  尝试从Yahoo Finance获取美元指数数据...")
+        print("  Yahoo Finance source is disabled because the chart endpoint returns 403.")
+        return None
         
         try:
             import yfinance as yf
@@ -454,14 +451,6 @@ def fetch_dollar_index_history() -> List[Dict]:
     
     # 尝试各个数据源
     data = fetch_dollar_from_sina()
-    if data:
-        return data
-    
-    data = fetch_dollar_from_eastmoney()
-    if data:
-        return data
-    
-    data = fetch_dollar_from_yahoo()
     if data:
         return data
     

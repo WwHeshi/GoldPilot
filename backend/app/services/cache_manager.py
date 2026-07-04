@@ -6,9 +6,10 @@ import json
 import os
 import threading
 import time
-from datetime import datetime
 from typing import Any, Dict, Optional
 from pathlib import Path
+
+from app.utils.timezone import china_now_iso
 
 # 缓存目录
 CACHE_DIR = Path(__file__).parent.parent.parent / "cache"
@@ -71,7 +72,7 @@ class CacheManager:
             cache_data = {
                 'data': data,
                 '_timestamp': timestamp,
-                '_created_at': datetime.now().isoformat()
+                '_created_at': china_now_iso()
             }
             
             # 使用临时文件+原子重命名，避免写入中断导致文件损坏

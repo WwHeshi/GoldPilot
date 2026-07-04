@@ -32,8 +32,6 @@ services:
       DB_USER: root
       DB_PASSWORD: goldmind123
       DB_NAME: gold_analysis
-      ZHIPU_API_KEY: ""
-      DEEPSEEK_API_KEY: ""
       DEBUG: "true"
       SCHEDULER_ENABLED: "false"
     ports:

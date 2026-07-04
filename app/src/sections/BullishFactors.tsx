@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { 
+import {
   TrendingUp, 
   Landmark, 
   Globe, 
@@ -15,6 +15,7 @@ import {
   Sparkles,
   Bot
 } from 'lucide-react';
+import { formatChinaDateTime } from '../lib/time';
 import { analysisApi, type BullishFactor } from '../services/api';
 
 // 图标映射
@@ -267,7 +268,7 @@ export default function BullishFactors() {
             )}
             {lastUpdated && (
               <span className="text-gray-500 text-sm">
-                更新时间: {new Date(lastUpdated).toLocaleString('zh-CN')}
+                更新时间: {formatChinaDateTime(lastUpdated)}
               </span>
             )}
             <button

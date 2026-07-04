@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
+const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:8000"
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
@@ -10,11 +12,11 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: proxyTarget,
         changeOrigin: true,
       },
       "/health": {
-        target: "http://localhost:8000",
+        target: proxyTarget,
         changeOrigin: true,
       },
     },

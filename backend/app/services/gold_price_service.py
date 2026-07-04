@@ -139,25 +139,27 @@ class GoldPriceService:
         """
         从东方财富获取伦敦金实时价格
         
-        API: https://push2.eastmoney.com/api/qt/stock/get?secid=103.XAUUSD
+        API: https://qt.gtimg.cn/q=hf_GC
         """
         try:
-            url = "https://push2.eastmoney.com/api/qt/stock/get"
-            params = {
-                'secid': '103.XAUUSD',
-                'fields': 'f43,f44,f45,f46,f47,f48,f49,f50,f51,f52,f57,f58,f60,f107',
-                '_': int(datetime.now().timestamp() * 1000)
-            }
+            url = "https://qt.gtimg.cn/q=hf_GC"
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
             
-            response = requests.get(url, params=params, headers=headers, timeout=5)
+            response = requests.get(url, headers=headers, timeout=5)
             
             if response.status_code == 200:
-                data = response.json()
-                if data.get('data'):
-                    d = data['data']
+                match = re.search(r'v_hf_GC="([^"]+)"', response.text)
+                if match:
+                    data = match.group(1).split(',')
+                    d = {
+                        'f43': float(data[0]) * 100,
+                        'f60': float(data[7]) * 100,
+                        'f46': float(data[8]) * 100,
+                        'f44': float(data[4]) * 100,
+                        'f45': float(data[5]) * 100,
+                    }
                     latest = d.get('f43', 0) / 100  # 最新价
                     prev_close = d.get('f60', 0) / 100  # 昨收
                     open_price = d.get('f46', 0) / 100  # 开盘价
@@ -176,8 +178,8 @@ class GoldPriceService:
                         "low": low,
                         "updated_at": datetime.now().isoformat(),
                         "update_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        "source": "eastmoney",
-                        "source_name": "东方财富-伦敦金",
+                        "source": "tencent",
+                        "source_name": "Tencent Finance - NY gold",
                         "symbol": "XAU/USD",
                         "unit": "美元/盎司"
                     }

@@ -7,8 +7,9 @@ import asyncio
 import json
 import logging
 
-from app.config import settings
 from app.services.cache_manager import CacheManager
+from app.services.ai_config_service import build_chat_openai
+from app.utils.timezone import china_now_iso
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,13 @@ class MarketSummaryAnalyzer:
     def llm(self):
         """延迟创建LLM实例"""
         if self._llm is None:
-            ChatOpenAIClass = _get_chat_openai()
-            self._llm = ChatOpenAIClass(
-                model=settings.MODEL_NAME,
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
-                temperature=0.7,
-                max_tokens=4096
-            )
+            from app.database import SessionLocal
+
+            db = SessionLocal()
+            try:
+                self._llm = build_chat_openai(db, temperature=0.7, max_tokens=4096)
+            finally:
+                db.close()
         return self._llm
 
     def analyze(
@@ -333,7 +333,7 @@ class MarketSummaryService:
                 result["metadata"] = {
                     "cached": False,
                     "cache_source": "deepseek_realtime",
-                    "generated_at": datetime.now().isoformat(),
+                    "generated_at": china_now_iso(),
                     "data_sources": ["实时金价数据", "看涨因子", "看跌因子", "机构预测", "24小时新闻"],
                     "analysis_method": "DeepSeek LLM 综合分析"
                 }
@@ -350,7 +350,7 @@ class MarketSummaryService:
             cached_data["metadata"] = {
                 "cached": True,
                 "cache_source": "file",
-                "generated_at": datetime.now().isoformat(),
+                "generated_at": china_now_iso(),
                 "data_sources": ["实时金价数据", "看涨因子", "看跌因子", "机构预测", "24小时新闻"],
                 "analysis_method": "DeepSeek LLM 综合分析"
             }
@@ -413,7 +413,7 @@ class MarketSummaryService:
             "metadata": {
                 "cached": True,
                 "cache_source": "default",
-                "generated_at": datetime.now().isoformat()
+                "generated_at": china_now_iso()
             }
         }
 

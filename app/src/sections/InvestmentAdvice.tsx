@@ -18,6 +18,7 @@ import {
   Sparkles,
   Bot
 } from 'lucide-react';
+import { formatChinaDateTime } from '../lib/time';
 import { investmentAdviceApi, type InvestmentAdviceResponse, type InvestmentStrategy } from '../services/api';
 
 interface StrategyCardProps {
@@ -390,7 +391,7 @@ export default function InvestmentAdvice() {
             </button>
             {advice?.metadata?.generated_at && (
               <span className="text-xs text-gray-500">
-                上次更新: {new Date(advice.metadata.generated_at).toLocaleString('zh-CN')}
+                上次更新: {formatChinaDateTime(advice.metadata.generated_at)}
               </span>
             )}
           </div>

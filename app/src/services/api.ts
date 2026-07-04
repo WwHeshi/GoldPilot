@@ -425,4 +425,35 @@ export const healthApi = {
   },
 };
 
+export interface AIConfig {
+  id: number;
+  provider_name: string;
+  base_url: string;
+  model_name: string;
+  enable_web_search: boolean;
+  has_api_key: boolean;
+  masked_api_key: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AIConfigUpdate {
+  base_url: string;
+  model_name: string;
+  api_key: string;
+  enable_web_search: boolean;
+}
+
+export const aiConfigApi = {
+  getConfig: async (): Promise<AIConfig> => {
+    const response = await api.get<AIConfig>('/api/gold/ai-config');
+    return response.data;
+  },
+
+  updateConfig: async (payload: AIConfigUpdate): Promise<AIConfig> => {
+    const response = await api.put<AIConfig>('/api/gold/ai-config', payload);
+    return response.data;
+  },
+};
+
 export default api;

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.news import GoldNews, SentimentType
 import feedparser
+from email.utils import parsedate_to_datetime
 
 
 class NewsService:
@@ -39,15 +40,32 @@ class NewsService:
     
     def fetch_from_rss(self, rss_url: str, source: str, limit: int = 10) -> List[Dict]:
         try:
-            feed = feedparser.parse(rss_url)
+            feed = feedparser.parse(
+                rss_url,
+                request_headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            )
             
             news_list = []
             for entry in feed.entries[:limit]:
+                published_at = None
+                published = entry.get('published') or entry.get('updated')
+                if published:
+                    try:
+                        published_at = parsedate_to_datetime(published)
+                    except Exception:
+                        published_at = None
+
+                summary = entry.get('summary', '')
+                link = entry.get('link', '')
                 news_list.append({
                     'title': entry.title,
-                    'summary': entry.get('summary', ''),
-                    'link': entry.link,
-                    'published_at': entry.get('published', ''),
+                    'summary': summary,
+                    'content': summary,
+                    'link': link,
+                    'url': link,
+                    'published_at': published_at,
                     'source': source
                 })
             
@@ -60,10 +78,11 @@ class NewsService:
         all_news = []
         
         rss_sources = [
-            ('http://finance.sina.com.cn/roll/finance_gold/index.d.html', '新浪财经'),
-            ('http://www.fx168.com/rss/gold.xml', 'FX168'),
+            ('https://news.kitco.com/rss/kitconewsfeed.xml', 'Kitco News'),
+            ('https://kingworldnews.com/feed/', 'King World News'),
+            ('https://www.mining.com/feed/', 'MINING.com'),
         ]
-        
+
         for rss_url, source in rss_sources:
             try:
                 news = self.fetch_from_rss(rss_url, source, limit=5)

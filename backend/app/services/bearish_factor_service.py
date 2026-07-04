@@ -10,24 +10,14 @@ from functools import partial
 
 from app.models.news import GoldNews
 from app.models.analysis import MarketFactor, FactorType, ImpactLevel
-from app.config import settings
 from app.services.cache_manager import CacheManager
 from app.services.zhipu_service import get_zhipu_service
+from app.services.ai_config_service import build_chat_openai
+from app.utils.timezone import china_now, china_now_iso, china_now_text, format_china_iso
 import json
 
 # 全局线程池（所有服务共享）
 _executor = ThreadPoolExecutor(max_workers=4)
-
-# 延迟导入langchain_openai（避免启动时慢）
-ChatOpenAI = None
-
-def _get_chat_openai():
-    """延迟加载ChatOpenAI类"""
-    global ChatOpenAI
-    if ChatOpenAI is None:
-        from langchain_openai import ChatOpenAI as _ChatOpenAI
-        ChatOpenAI = _ChatOpenAI
-    return ChatOpenAI
 
 # 内存缓存
 _cache = {}
@@ -126,14 +116,13 @@ class BearishFactorAnalyzer:
     def llm(self):
         """延迟创建LLM实例"""
         if self._llm is None:
-            ChatOpenAIClass = _get_chat_openai()
-            self._llm = ChatOpenAIClass(
-                model=settings.MODEL_NAME,
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
-                temperature=0.7,
-                max_tokens=4096
-            )
+            from app.database import SessionLocal
+
+            db = SessionLocal()
+            try:
+                self._llm = build_chat_openai(db, temperature=0.7, max_tokens=4096)
+            finally:
+                db.close()
         return self._llm
 
     def fetch_recent_news(self, db: Session, hours: int = 24) -> List[GoldNews]:
@@ -154,9 +143,8 @@ class BearishFactorAnalyzer:
 
         # RSS源列表
         rss_sources = [
-            ('https://finance.sina.com.cn/money/gold/gold_xh.shtml', '新浪财经'),
-            ('https://www.fx168.com/gold/', 'FX168'),
-            ('https://www.jin10.com/', '金十数据'),
+            ('https://news.kitco.com/rss/kitconewsfeed.xml', 'Kitco News'),
+            ('https://kingworldnews.com/feed/', 'King World News'),
         ]
 
         for url, source in rss_sources:
@@ -221,7 +209,7 @@ class BearishFactorAnalyzer:
             # 检查搜索结果是否有效
             if search_result.get("bearish_factors") and len(search_result["bearish_factors"]) > 0:
                 print(f"[BearishFactor] 成功获取 {len(search_result['bearish_factors'])} 个看空因素")
-                search_result["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                search_result["last_updated"] = china_now_iso()
                 search_result["data_source"] = "智谱AI实时搜索"
                 return search_result
             else:
@@ -275,66 +263,17 @@ class BearishFactorAnalyzer:
 5. 确保5个因子都有数据
 """
         
-        try:
-            from openai import OpenAI
-            
-            client = OpenAI(
-                api_key=settings.ZHIPU_API_KEY,
-                base_url=settings.ZHIPU_BASE_URL
-            )
-            
-            response = client.chat.completions.create(
-                model=settings.ZHIPU_MODEL,
-                messages=[{
-                    "role": "user",
-                    "content": prompt
-                }],
-                tools=[{
-                    "type": "web_search",
-                    "web_search": {
-                        "enable": True,
-                        "search_result": True
-                    }
-                }],
-                temperature=0.3,
-                max_tokens=4096
-            )
-            
-            content = response.choices[0].message.content
-            
-            # 尝试解析JSON
-            try:
-                # 清理可能的markdown代码块
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0]
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0]
-                
-                result = json.loads(content.strip())
-                return result
-            except json.JSONDecodeError:
-                # 尝试从文本中提取JSON
-                start = content.find('{')
-                end = content.rfind('}') + 1
-                if start != -1 and end > start:
-                    try:
-                        result = json.loads(content[start:end])
-                        return result
-                    except:
-                        pass
-                
-                return {
-                    "bearish_factors": [],
-                    "analysis_summary": "解析失败",
-                    "raw_content": content
-                }
-                
-        except Exception as e:
-            print(f"搜索看空因素失败: {e}")
-            return {
-                "bearish_factors": [],
-                "analysis_summary": f"搜索失败: {str(e)}"
-            }
+        result = self.zhipu_service.search_json(prompt)
+        if result.get("bearish_factors"):
+            return result
+
+        error = result.get("error", "解析失败")
+        print(f"搜索看空因素失败: {error}")
+        return {
+            "bearish_factors": [],
+            "analysis_summary": f"搜索失败: {error}",
+            "raw_content": result.get("raw_content", "")
+        }
     
     def _analyze_with_traditional_llm(self, db: Session) -> Dict[str, Any]:
         """使用传统LLM分析（备用方案）"""
@@ -361,7 +300,7 @@ class BearishFactorAnalyzer:
         gold_data = self.get_current_gold_data(db)
 
         # 3. 构建prompt并调用LLM
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_time = china_now_text()
         prompt = self.prompt_template.format(
             current_price=gold_data["current_price"],
             price_change=gold_data["price_change"],
@@ -466,7 +405,7 @@ class BearishFactorAnalyzer:
                 }
             ],
             "analysis_summary": "基于当前市场状况的综合分析",
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": china_now_iso()
         }
 
     def save_to_database(self, db: Session, analysis_result: Dict[str, Any]) -> None:
@@ -488,7 +427,7 @@ class BearishFactorAnalyzer:
                 existing.description = factor_data.get("description", "")
                 existing.details = factor_data.get("details", [])
                 existing.impact = ImpactLevel(factor_data.get("impact", "medium"))
-                existing.updated_at = datetime.now()
+                existing.updated_at = china_now()
             else:
                 # 创建新记录
                 new_factor = MarketFactor(
@@ -553,11 +492,11 @@ class BearishFactorService:
                     for f in recent_factors[:5]
                 ],
                 "analysis_summary": "基于最新市场数据的分析",
-                "last_updated": recent_factors[0].updated_at.strftime("%Y-%m-%d %H:%M:%S") if recent_factors else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "last_updated": format_china_iso(recent_factors[0].updated_at) if recent_factors else china_now_iso(),
                 "metadata": {
                     "cached": True,
                     "cache_source": "database",
-                    "generated_at": recent_factors[0].updated_at.isoformat() if recent_factors else datetime.now().isoformat()
+                    "generated_at": format_china_iso(recent_factors[0].updated_at) if recent_factors else china_now_iso()
                 }
             }
         return None
@@ -588,7 +527,7 @@ class BearishFactorService:
                 result["metadata"] = {
                     "cached": False,
                     "cache_source": "realtime_search",
-                    "generated_at": datetime.now().isoformat(),
+                    "generated_at": china_now_iso(),
                     "message": "基于智谱AI实时搜索的最新数据"
                 }
                 return result
@@ -603,7 +542,7 @@ class BearishFactorService:
             memory_cache["metadata"] = {
                 "cached": True,
                 "cache_source": "memory",
-                "generated_at": datetime.now().isoformat()
+                "generated_at": china_now_iso()
             }
             return memory_cache
 
@@ -621,7 +560,7 @@ class BearishFactorService:
         return {
             "bearish_factors": self.analyzer._get_default_factors()["bearish_factors"],
             "analysis_summary": "正在分析最新数据，请稍后刷新查看AI分析结果",
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_updated": china_now_iso(),
             "metadata": {
                 "cached": False,
                 "status": "analyzing",
@@ -648,7 +587,7 @@ class BearishFactorService:
                 self.analyzer.save_to_database(db, result)
                 # 更新内存缓存
                 self._set_memory_cache(result)
-                print(f"[BearishFactor] 后台分析完成，时间: {datetime.now()}")
+                print(f"[BearishFactor] 后台分析完成，时间: {china_now_text()}")
             finally:
                 db.close()
         except Exception as e:
