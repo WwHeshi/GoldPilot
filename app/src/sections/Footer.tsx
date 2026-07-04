@@ -6,8 +6,8 @@ export default function Footer() {
   const dataSources = [
     '实时金价数据 - 腾讯财经API（纽约黄金期货GC）',
     '实时美元指数 - 新浪财经API（ICE美元指数DXY）',
-    '智谱AI (Zhipu AI) - 实时新闻搜索与分析',
-    'DeepSeek LLM - 市场综合分析与投资建议',
+    'OpenAI 兼容模型 - 页面配置的 AI 分析能力',
+    '可选 Web Search - 新闻搜索与机构观点抓取',
     '高盛 (Goldman Sachs) - 机构预测',
     '瑞银 (UBS) - 机构预测',
     '摩根士丹利 (Morgan Stanley) - 机构预测',

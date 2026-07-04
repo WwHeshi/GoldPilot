@@ -1,4 +1,4 @@
-# GoldMind API 接口文档
+# GoldPilot API 接口文档
 
 <p align="center">
   <img src="https://img.shields.io/badge/API-RESTful-green?style=for-the-badge" alt="RESTful API">
@@ -24,7 +24,7 @@
 
 ## 概述
 
-GoldMind API 提供完整的黄金市场数据服务，包括实时价格、历史数据、AI智能分析、机构预测等功能。所有接口均遵循 RESTful 设计规范，返回 JSON 格式数据。
+GoldPilot API 提供完整的黄金市场数据服务，包括实时价格、历史数据、AI智能分析、机构预测等功能。所有接口均遵循 RESTful 设计规范，返回 JSON 格式数据。
 
 ### 核心价值
 
@@ -503,7 +503,7 @@ GET /analysis/investment-advice-ai
 
 #### 11. 获取市场综合分析
 
-基于DeepSeek LLM生成全面的市场总结和综合判断。
+基于页面配置的 OpenAI 兼容模型生成全面的市场总结和综合判断。
 
 ```http
 GET /analysis/market-summary-ai
@@ -820,7 +820,7 @@ const refreshAnalysis = async () => {
 ---
 
 <p align="center">
-  <strong>GoldMind API</strong> - 为智能黄金投资提供数据动力
+  <strong>GoldPilot API</strong> - 为智能黄金投资提供数据动力
   <br>
-  <sub>如有问题，请参考 <a href="./ARCHITECTURE.md">架构文档</a> 或提交 <a href="../CONTRIBUTING.md">Issue</a></sub>
+  <sub>如有问题，请参考 <a href="./ARCHITECTURE.md">架构文档</a> 或提交 <a href="https://github.com/WwHeshi/GoldPilot/issues">Issue</a></sub>
 </p>

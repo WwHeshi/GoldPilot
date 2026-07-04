@@ -226,11 +226,11 @@ export default function Summary() {
                 <div className="space-y-2 text-xs">
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">技术栈:</span>
-                    <span className="text-gray-300">LangChain + DeepSeek-V3 + 多Agent协作</span>
+                    <span className="text-gray-300">LangChain + OpenAI 兼容接口 + 多Agent协作</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">大模型:</span>
-                    <span className="text-gray-300">DeepSeek-V3 (671B参数)</span>
+                    <span className="text-gray-300">页面配置的 OpenAI 兼容模型</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">架构:</span>

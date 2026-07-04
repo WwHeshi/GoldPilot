@@ -27,23 +27,23 @@
 
 ## ⚡ 项目概述
 
-**GoldMind** 是一个基于 **LangChain Multi-Agent 架构** 的黄金市场智能分析平台，融合 **ReAct 推理框架**、**RAG（检索增强生成）** 与 **多模型协作** 技术，为投资者提供深度市场洞察。
+**GoldPilot** 是一个基于 **LangChain Multi-Agent 架构** 的黄金市场智能分析平台，融合 **ReAct 推理框架**、**RAG（检索增强生成）** 与 **多模型协作** 技术，为投资者提供深度市场洞察。
 
-系统基于 **GLM-4-Plus**（智谱AI）与 **DeepSeek-V3** 双引擎驱动，通过专用 Agent 分工协作：**Market Analysis Agent** 负责技术面量化分析，**News Intelligence Agent** 基于实时搜索进行舆情解析，**Institution Research Agent** 追踪主流机构观点，**Investment Advisory Agent** 融合多源信息生成策略建议。各 Agent 通过结构化输出实现结果融合，形成对黄金市场的全景认知。
+系统通过页面内的 **AI 设置** 接入通用 **OpenAI 兼容接口**，由用户配置 `Base URL`、`Model` 与 `API Key`。后端通过 LangChain 统一调用模型，并由专用 Agent 分工协作：**Market Analysis Agent** 负责市场因子分析，**News Intelligence Agent** 基于可选实时搜索进行舆情解析，**Institution Research Agent** 追踪主流机构观点，**Investment Advisory Agent** 融合多源信息生成策略建议。各 Agent 通过结构化输出实现结果融合，形成对黄金市场的全景认知。
 
 > 你只需：关注黄金市场动态，系统自动采集数据并分析  
-> GoldMind 将返回：融合价格走势、市场情绪、机构观点的综合分析报告
+> GoldPilot 将返回：融合价格走势、市场情绪、机构观点的综合分析报告
 
 ### 🎯 核心技术架构
 
 **🚀 LangChain Multi-Agent 框架**  
-基于 LangChain 构建的模块化 Agent 系统，每个 Agent 封装独立的分析逻辑与工具链。通过 `BaseAgent` 抽象基类统一 LLM 调用接口，支持 DeepSeek 与智谱AI 双模型后端灵活切换。Agent 间通过结构化数据传递实现协作，避免单点失效，提升系统鲁棒性。
+基于 LangChain 构建的模块化 Agent 系统，每个 Agent 封装独立的分析逻辑与工具链。通过 `BaseAgent` 抽象基类统一 LLM 调用接口，支持任意 OpenAI 兼容模型后端。Agent 间通过结构化数据传递实现协作，避免单点失效，提升系统鲁棒性。
 
-**🌐 GLM-4-Plus 实时搜索增强**  
-集成智谱AI **GLM-4-Plus** 模型的 **Web Search** 能力，实现对机构研报、财经新闻、市场动态的实时检索与理解。相比传统静态数据源，系统能够捕捉最新市场变化，为分析提供时效性信息支撑。
+**🌐 OpenAI 兼容接口与可选实时搜索**
+AI 能力在前端页面配置，不再依赖 `.env` 写死模型。若所选 OpenAI 兼容服务支持 `tools.web_search`，系统可以启用实时搜索；否则会使用缓存、数据库和降级数据完成基础展示。
 
-**🧠 DeepSeek 深度推理与多 Agent 融合**  
-采用 **DeepSeek-V3** 作为核心推理引擎，结合其强大的长文本理解与逻辑推理能力，对多 Agent 输出进行融合分析。通过设计特定的融合 Prompt，将技术面、基本面、情绪面、机构观点四维信息整合，生成具备逻辑一致性的投资判断。
+**🧠 通用推理模型与多 Agent 融合**
+投资建议与综合总结使用页面配置的模型进行推理。通过设计特定的融合 Prompt，将技术面、基本面、情绪面、机构观点四维信息整合，生成具备逻辑一致性的投资判断。
 
 **📊 ReAct 推理 + RAG 检索增强**  
 在 Agent 内部实现 **ReAct（Reasoning + Acting）** 推理模式：Thought（分析当前状态）→ Action（调用工具获取数据）→ Observation（整合观察结果）→ Final Answer（输出结论）。结合 RAG 技术从本地数据库检索历史价格、新闻舆情等上下文信息，增强 LLM 的事实性与准确性。
@@ -52,7 +52,7 @@
 
 ## 🌟 我们的愿景
 
-**GoldMind** 致力于通过社区共同努力，打造一个**真实可用的 AI Agent 国际黄金市场数据分析与价格预测平台**。
+**GoldPilot** 致力于通过社区共同努力，打造一个**真实可用的 AI Agent 国际黄金市场数据分析与价格预测平台**。
 
 我们希望通过技术创新：
 - 📉 **减少信息差** - 让每位投资者都能获取专业级的市场分析
@@ -69,33 +69,33 @@
 
 ### 首页仪表盘
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/dashboard.jpeg" alt="Dashboard" width="800">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/dashboard.jpeg" alt="Dashboard" width="800">
 </p>
 
 ### 实时价格走势
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/price-chart.jpeg" alt="Price Chart" width="800">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/price-chart.jpeg" alt="Price Chart" width="800">
 </p>
 
 ### 多空因素分析
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/news-analysis-up.jpeg" alt="Bullish Factors" width="400">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/news-analysis-down.jpeg" alt="Bearish Factors" width="400">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/news-analysis-up.jpeg" alt="Bullish Factors" width="400">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/news-analysis-down.jpeg" alt="Bearish Factors" width="400">
 </p>
 
 ### 机构观点
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/institutional-views.jpeg" alt="Institutional Views" width="800">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/institutional-views.jpeg" alt="Institutional Views" width="800">
 </p>
 
 ### 投资建议
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/investment-advice.jpeg" alt="Investment Advice" width="800">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/investment-advice.jpeg" alt="Investment Advice" width="800">
 </p>
 
 ### 市场总结
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JasonBuildAI/GoldMind/main/docs/images/screenshots/market-summary.jpeg" alt="Market Summary" width="800">
+  <img src="https://raw.githubusercontent.com/WwHeshi/GoldPilot/main/docs/images/screenshots/market-summary.jpeg" alt="Market Summary" width="800">
 </p>
 
 ---
@@ -326,7 +326,7 @@ docker exec -it goldmind_mysql mysql -uroot -p
 1. **数据采集层**：实时金价API抓取 & 新闻舆情Web搜索 & 机构研报智能检索
 2. **多Agent并行分析**：Market Analysis Agent技术面量化 & News Intelligence Agent情绪解析 & Institution Research Agent观点追踪
 3. **ReAct推理决策**：各Agent基于RAG检索历史数据 → Thought分析 → Action工具调用 → Observation整合 → Final Answer输出
-4. **结果融合引擎**：DeepSeek-V3接收四维结构化数据 → 多源信息交叉验证 → 逻辑一致性校验 → 生成综合投资判断
+4. **结果融合引擎**：页面配置的 OpenAI 兼容模型接收四维结构化数据 → 多源信息交叉验证 → 逻辑一致性校验 → 生成综合投资判断
 5. **智能报告生成**：Investment Advisory Agent整合所有分析结果 → 生成策略建议与风险提示 → 结构化JSON响应前端可视化
 
 ---
@@ -337,11 +337,11 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 | 属性 | 详情 |
 |------|------|
-| **技术栈** | LangChain + 智谱AI GLM-4-Plus |
-| **大模型** | 智谱AI GLM-4-Plus (支持实时搜索) |
-| **架构** | ReAct推理架构 + 实时搜索插件 |
+| **技术栈** | LangChain + OpenAI 兼容接口 |
+| **大模型** | 页面配置的 OpenAI 兼容模型 |
+| **架构** | ReAct推理架构 + 可选实时搜索 |
 | **功能逻辑** | 基于24小时新闻与市场数据，智能提取看涨/看空因子 |
-| **数据来源** | 智谱AI实时搜索 + 腾讯财经API + MySQL历史数据 |
+| **数据来源** | 可选模型实时搜索 + 行情API + MySQL历史数据 |
 
 ---
 
@@ -349,23 +349,23 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 | 属性 | 详情 |
 |------|------|
-| **技术栈** | LangChain + 智谱AI GLM-4-Plus |
-| **大模型** | 智谱AI GLM-4-Plus (支持实时搜索) |
-| **架构** | 专用Agent架构 + Web Search实时检索插件 |
+| **技术栈** | LangChain + OpenAI 兼容接口 |
+| **大模型** | 页面配置的 OpenAI 兼容模型 |
+| **架构** | 专用Agent架构 + 可选 Web Search |
 | **功能逻辑** | 实时抓取高盛、瑞银、摩根士丹利、花旗等主流机构最新黄金预测观点，提取目标价位与逻辑依据 |
-| **数据来源** | 智谱AI实时搜索 + 机构官方研报 + 权威财经新闻 |
+| **数据来源** | 可选模型实时搜索 + 机构官方研报 + 权威财经新闻 |
 
 ---
 
-### � 新闻分析 Agent
+### 📰 新闻分析 Agent
 
 | 属性 | 详情 |
 |------|------|
-| **技术栈** | LangChain + 智谱AI GLM-4-Plus |
-| **大模型** | 智谱AI GLM-4-Plus (支持实时搜索) |
-| **架构** | 实时搜索 + 情感分析 + 多空因子提取 |
+| **技术栈** | LangChain + OpenAI 兼容接口 |
+| **大模型** | 页面配置的 OpenAI 兼容模型 |
+| **架构** | 可选实时搜索 + 情感分析 + 多空因子提取 |
 | **功能逻辑** | 24小时滚动抓取黄金市场相关新闻，分析情感倾向，智能提取看涨/看空因子及其市场影响权重 |
-| **数据来源** | 智谱AI实时搜索 + 新浪财经 + 腾讯财经 + 金十数据 |
+| **数据来源** | 可选模型实时搜索 + 财经新闻源 + 行情数据 |
 
 ---
 
@@ -373,8 +373,8 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 | 属性 | 详情 |
 |------|------|
-| **技术栈** | LangChain + DeepSeek-V3 + RAG |
-| **大模型** | DeepSeek-V3 (671B参数) |
+| **技术栈** | LangChain + OpenAI 兼容接口 + RAG |
+| **大模型** | 页面配置的 OpenAI 兼容模型 |
 | **架构** | RAG检索增强生成 + 多源分析结果融合 |
 | **功能逻辑** | 综合分析市场分析Agent、机构预测Agent、新闻分析Agent的输出结果，生成个性化投资策略与风险提示 |
 | **数据来源** | 市场分析Agent结构化输出 + 机构预测Agent观点汇总 + 新闻分析Agent情绪数据 |
@@ -385,8 +385,8 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 | 属性 | 详情 |
 |------|------|
-| **技术栈** | LangChain + DeepSeek-V3 + 多Agent协作 |
-| **大模型** | DeepSeek-V3 (671B参数) |
+| **技术栈** | LangChain + OpenAI 兼容接口 + 多Agent协作 |
+| **大模型** | 页面配置的 OpenAI 兼容模型 |
 | **架构** | 多Agent结果融合 + 深度推理生成 + 结构化输出 |
 | **功能逻辑** | 整合所有Agent分析结果，进行交叉验证与逻辑一致性校验，生成全面市场认知与投资判断，输出包含技术面、基本面、情绪面、机构观点的四维综合分析报告 |
 | **数据来源** | 市场分析Agent + 机构预测Agent + 新闻分析Agent + 投资建议Agent |
@@ -395,12 +395,12 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 ## 🤝 贡献
 
-我们欢迎所有形式的贡献！请查看我们的[贡献指南](./CONTRIBUTING.md)了解如何参与项目。
+我们欢迎所有形式的贡献！可以通过 [Issues](https://github.com/WwHeshi/GoldPilot/issues) 反馈问题或建议，也可以直接提交 Pull Request。
 
 ### 贡献者
 
-<a href="https://github.com/JasonBuildAI/GoldMind/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JasonBuildAI/GoldMind" alt="Contributors" />
+<a href="https://github.com/WwHeshi/GoldPilot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=WwHeshi/GoldPilot" alt="Contributors" />
 </a>
 
 ---
@@ -413,8 +413,8 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 ## 🙏 致谢
 
-- [DeepSeek](https://deepseek.com/) - 提供AI模型支持
-- [智谱AI](https://www.zhipuai.cn/) - 提供大语言模型API
+- OpenAI 兼容模型生态 - 提供可替换的大语言模型接口
+- [LangChain](https://www.langchain.com/) - Agent 编排与模型调用能力
 - [FastAPI](https://fastapi.tiangolo.com/) - 高性能Web框架
 - [React](https://react.dev/) - 前端UI框架
 
@@ -422,13 +422,13 @@ docker exec -it goldmind_mysql mysql -uroot -p
 
 ## 📧 联系作者
 
-如果您有任何问题、建议或合作意向，欢迎通过以下方式联系我们：
+如果您有任何问题、建议或合作意向，欢迎通过以下方式联系：
 
-- 📮 **谷歌邮箱**：JasonBuildAI@gmail.com
-- 📮 **QQ邮箱**：3310145612@qq.com
+- GitHub：[@WwHeshi](https://github.com/WwHeshi)
+- Issues：[WwHeshi/GoldPilot/issues](https://github.com/WwHeshi/GoldPilot/issues)
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/JasonBuildAI">JasonBuildAI</a></sub>
+  <sub>Built with ❤️ by <a href="https://github.com/WwHeshi">WwHeshi</a></sub>
 </p>

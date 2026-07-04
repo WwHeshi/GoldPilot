@@ -1,6 +1,7 @@
 {
-  "name": "my-app",
+  "name": "goldpilot",
   "private": true,
+  "author": "WwHeshi",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

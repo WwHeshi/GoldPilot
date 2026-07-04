@@ -215,15 +215,15 @@ export default function InstitutionalViews() {
                 <div className="space-y-2 text-xs">
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">技术栈:</span>
-                    <span className="text-gray-300">LangChain + 智谱AI GLM-4-Plus</span>
+                    <span className="text-gray-300">LangChain + OpenAI 兼容接口</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">大模型:</span>
-                    <span className="text-gray-300">智谱AI GLM-4-Plus (支持实时搜索)</span>
+                    <span className="text-gray-300">页面配置的 OpenAI 兼容模型</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">架构:</span>
-                    <span className="text-gray-300">专用Agent架构 + 定向实时搜索</span>
+                    <span className="text-gray-300">专用Agent架构 + 可选 Web Search</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">功能逻辑:</span>
@@ -231,7 +231,7 @@ export default function InstitutionalViews() {
                   </div>
                   <div className="flex gap-2">
                     <span className="text-gray-500 shrink-0">数据来源:</span>
-                    <span className="text-gray-300">智谱AI实时搜索 + 机构官方报告 + 财经新闻</span>
+                    <span className="text-gray-300">可选模型实时搜索 + 机构官方报告 + 财经新闻</span>
                   </div>
                 </div>
                 {/* Arrow */}
