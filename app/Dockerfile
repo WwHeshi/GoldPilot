@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_API_URL=""
+ENV VITE_API_URL=$VITE_API_URL
+
 # 复制 package.json 和 package-lock.json
 COPY package*.json ./
 

@@ -45,9 +45,8 @@ echo "✅ 数据库连接成功"
 echo ""
 echo "📊 初始化数据库..."
 cd /app
-python init_db.py
 
-if [ $? -eq 0 ]; then
+if python init_db.py; then
     echo "✅ 数据库初始化完成"
 else
     echo "⚠️  数据库初始化出现问题，但将继续启动服务"

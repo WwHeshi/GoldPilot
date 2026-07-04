@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="docs\images\6779ac1d5f10d9ad61b395a725e21bbd.png" alt="GoldMind Logo" width="600">
-</p>
-
-<h1 align="center">🥇 GoldMind</h1>
+<h1 align="center">GoldPilot</h1>
 
 <p align="center">
   <strong>基于多智能体协作的下一代黄金市场智能分析引擎</strong><br>
@@ -15,10 +11,6 @@
   <img src="https://img.shields.io/badge/version-v1.0.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react" alt="React">
-</p>
-
-<p align="center">
-  <a href="./README_EN.md">English</a> | <strong>中文文档</strong>
 </p>
 
 <p align="center">
@@ -254,37 +246,11 @@ npm run dev
 
 > ⚠️ **网络要求**：需要能够访问 Docker Hub 下载镜像。国内用户可能需要配置 VPN/代理。
 
-#### 1. 配置环境变量
+#### 1. 无需配置环境变量
 
-```bash
-# 复制示例配置文件
-cp backend/.env.example backend/.env
+Docker 部署已经在 `docker-compose.yml` 中内置 MySQL、后端和前端配置，不需要复制或编辑 `.env` 文件。
 
-# 编辑 .env 文件，填入必要的 API 密钥
-```
-
-**必需的环境变量：**
-
-```bash
-# ============================================
-# 数据库配置（Docker内部使用）
-# ============================================
-MYSQL_ROOT_PASSWORD=your_secure_password
-DATABASE_URL=mysql+pymysql://root:your_secure_password@mysql:3306/gold_analysis
-
-# ============================================
-# AI API 密钥配置
-# ============================================
-# 智谱AI (Zhipu AI) - 用于实时搜索、新闻分析、机构预测
-# 获取地址: https://open.bigmodel.cn/
-ZHIPU_API_KEY=your_zhipu_api_key_here
-
-# DeepSeek - 用于深度推理、投资建议生成
-# 获取地址: https://www.deepseek.com/
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
-```
-
-> 💡 **注意**：`docker-compose.yml` 已配置自动加载 `backend/.env` 文件，无需手动设置环境变量。
+> 💡 **注意**：默认配置会让应用完整启动。未填写 AI API Key 时，AI 刷新类能力会使用默认/缓存数据或降级结果；如需真实 AI 实时分析，可以后续在 `docker-compose.yml` 中填入 `ZHIPU_API_KEY` 和 `DEEPSEEK_API_KEY`。
 
 #### 2. 启动服务
 
